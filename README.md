@@ -9,3 +9,21 @@
 
 
 
+
+## Toucan2
+
+Konfiguration für die beekeeb Toucan2. Die Shields `toucan` und `nice_view_gem` stammen aus [beekeeb/zmk-keyboard-toucan2](https://github.com/beekeeb/zmk-keyboard-toucan2) (MIT, siehe `boards/shields/toucan/LICENSE-beekeeb`).
+
+- **Keymap:** `config/toucan.keymap`, abgeleitet von `config/piantor_pro_bt.keymap`.
+- **Ebene 4 (MAUS):** aktiv, solange das Trackpad berührt wird. Die Daumentasten sind dann Mausklicks.
+- **Ebene 5 (SYSTEM):** Ebene 1 und Ebene 2 gleichzeitig halten. Dort liegen Bluetooth-Profile, `&bootloader` (links oben außen für die linke Hälfte, rechts oben außen für die rechte), `&studio_unlock` und `&sys_reset`.
+- **Windows-Modus:** in `boards/shields/toucan/toucan.dtsi` per `#define TOUCAN_WIN_MODE` aktiviert.
+- **Bluetooth-Einstellungen:** `config/toucan_left.conf` und `config/toucan_right.conf`.
+
+Firmware-Dateien aus den GitHub Actions:
+
+- `toucan_left rgbled_adapter nice_view_gem-seeeduino_xiao_ble-zmk.uf2` → linke Hälfte
+- `toucan_right rgbled_adapter-seeeduino_xiao_ble-zmk.uf2` → rechte Hälfte
+- `settings_reset-seeeduino_xiao_ble-zmk.uf2` → setzt gespeicherte Einstellungen zurück
+
+Änderungen aus ZMK Studio überschreiben die Keymap aus der Firmware. Nach dem Flashen einer neuen Keymap deshalb in ZMK Studio „Restore Stock Settings“ ausführen.

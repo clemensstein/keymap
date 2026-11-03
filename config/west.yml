@@ -2,6 +2,10 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
+    - name: caksoylar
+      url-base: https://github.com/caksoylar
+    - name: beekeeb
+      url-base: https://github.com/beekeeb
     # Additional modules containing boards/shields/custom code can be listed here as well
     # See https://docs.zephyrproject.org/3.2.0/develop/west/manifest.html#projects
   projects:
@@ -9,5 +13,17 @@ manifest:
       remote: zmkfirmware
       revision: v0.3
       import: app/west.yml
+    # Toucan2: LED-Statusanzeige (rgbled_adapter)
+    - name: zmk-rgbled-widget
+      remote: caksoylar
+      revision: v0.3
+    # Toucan2: Treiber fuer das Azoteq-TPS43-Trackpad
+    - name: zmk_driver_azoteq
+      remote: beekeeb
+      revision: main
+    # Toucan2: Zoom-Geste auf dem Trackpad
+    - name: zmk-input-zoom
+      remote: beekeeb
+      revision: main
   self:
     path: config
