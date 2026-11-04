@@ -57,8 +57,10 @@
 
         enable-power-management;
         // idle-sleep; // provides maximal power savings but when ZMK is idle (i.e. you haven't used keyboard in 30secs) the touchpad will not work.  not recommended.
-        // timeout-lp1 = <3>; // 60s timeout before entering lp2 state (20 secs per unit) (default was 20s)
-        report-rate-lp2 = <640>; // 640ms report rate in LP2 state means 55uA draw rather than default 160ms 174uA draw
+        // Schneller aufwachen: erst nach 5 Minuten ohne Benutzung in die tiefste Stromsparstufe (LP2)
+        timeout-lp1 = <15>; // 15 x 20 s = 300 s (default 20 s)
+        // 160 ms statt 640 ms in LP2: erste Beruehrung wird schneller erkannt (ca. 174 uA statt 55 uA)
+        report-rate-lp2 = <160>;
         scroll-angle = <30>; // The default angle (about 47 deg) is too big on toucan2 I think
         sensitivity = <100>;
         scroll-sensitivity = <100>;
@@ -75,7 +77,8 @@
         three-finger-swipe;
         three-finger-swipe-throttle-ms = <1200>;
         switch-xy;
-        invert-scroll-y;
+        // Scrollrichtung umgedreht: invert-scroll-y entfernt
+        // invert-scroll-y;
 
     };
 };
