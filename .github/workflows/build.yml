@@ -1,5 +1,6 @@
 name: Build ZMK firmware
-on: [push, pull_request, workflow_dispatch]
+# Nur manuell starten: GitHub -> Actions -> "Build ZMK firmware" -> "Run workflow"
+on: [workflow_dispatch]
 
 jobs:
   build:
