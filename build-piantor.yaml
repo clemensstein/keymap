@@ -1,0 +1,20 @@
+# Build-Matrix fuer die Piantor Pro BT (Workflow: .github/workflows/build-piantor.yml)
+---
+include:
+  # Dongle (Central) auf Seeed XIAO nRF52840
+  - board: seeeduino_xiao_ble
+    shield: piantor_pro_bt_dongle
+
+  # Reset-Firmware fuer alle drei Geraete (vor dem ersten Flash noetig)
+  - board: seeeduino_xiao_ble
+    shield: settings_reset
+  - board: piantor_pro_bt_left
+    shield: settings_reset
+  - board: piantor_pro_bt_right
+    shield: settings_reset
+
+  # Beide Haelften als Peripheral (Central-Rolle abschalten)
+  - board: piantor_pro_bt_left
+    cmake-args: -DCONFIG_ZMK_SPLIT_ROLE_CENTRAL=n
+  - board: piantor_pro_bt_right
+    cmake-args: -DCONFIG_ZMK_SPLIT_ROLE_CENTRAL=n

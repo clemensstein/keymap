@@ -1,0 +1,14 @@
+# Build-Matrix fuer die Toucan2 (Workflow: .github/workflows/build-toucan.yml)
+---
+include:
+  # Links = Central mit Display und ZMK Studio, rechts = Peripheral mit Trackpad
+  - board: seeeduino_xiao_ble
+    shield: toucan_left rgbled_adapter nice_view_gem
+    snippet: studio-rpc-usb-uart
+    cmake-args: -DCONFIG_ZMK_STUDIO=y
+  - board: seeeduino_xiao_ble
+    shield: toucan_right rgbled_adapter
+
+  # Reset-Firmware fuer beide Haelften
+  - board: seeeduino_xiao_ble
+    shield: settings_reset

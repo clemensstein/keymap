@@ -20,7 +20,7 @@ Konfiguration für die beekeeb Toucan2. Die Shields `toucan` und `nice_view_gem`
 - **Windows-Modus:** in `boards/shields/toucan/toucan.dtsi` per `#define TOUCAN_WIN_MODE` aktiviert.
 - **Bluetooth-Einstellungen:** `config/toucan_left.conf` und `config/toucan_right.conf`.
 
-Firmware-Dateien aus den GitHub Actions:
+Firmware bauen: GitHub → Actions → **Build Toucan2 firmware** → **Run workflow** (für die Piantor entsprechend **Build Piantor Pro BT firmware**). Gebaut wird nur manuell, nicht bei jedem Push. Dateien im Artefakt `toucan2-firmware`:
 
 - `toucan_left rgbled_adapter nice_view_gem-seeeduino_xiao_ble-zmk.uf2` → linke Hälfte
 - `toucan_right rgbled_adapter-seeeduino_xiao_ble-zmk.uf2` → rechte Hälfte

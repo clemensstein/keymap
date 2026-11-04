@@ -1,7 +1,0 @@
-name: Build ZMK firmware
-# Nur manuell starten: GitHub -> Actions -> "Build ZMK firmware" -> "Run workflow"
-on: [workflow_dispatch]
-
-jobs:
-  build:
-    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3

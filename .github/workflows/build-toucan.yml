@@ -1,0 +1,10 @@
+name: Build Toucan2 firmware
+# Nur manuell starten: GitHub -> Actions -> "Build Toucan2 firmware" -> "Run workflow"
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3
+    with:
+      build_matrix_path: build-toucan.yaml
+      archive_name: toucan2-firmware
