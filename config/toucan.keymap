@@ -211,10 +211,10 @@
             display-name = "MAUS";
 
             // Automatisch aktiv, solange das Trackpad beruehrt wird.
-            //                    | MCLK | LCLK | RCLK | LCLK | RCLK | MCLK |
+            //                    | RCLK | LCLK | MCLK | LCLK | MCLK | RCLK |
 
             bindings = <
-&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &mkp MCLK  &mkp LCLK  &mkp RCLK  &mkp LCLK  &mkp RCLK  &mkp MCLK
+&trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &trans  &mkp RCLK  &mkp LCLK  &mkp MCLK  &mkp LCLK  &mkp MCLK  &mkp RCLK
             >;
         };
 
