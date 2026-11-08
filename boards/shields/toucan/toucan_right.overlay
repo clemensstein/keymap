@@ -57,12 +57,14 @@
 
         enable-power-management;
         // idle-sleep; // provides maximal power savings but when ZMK is idle (i.e. you haven't used keyboard in 30secs) the touchpad will not work.  not recommended.
-        // Schneller aufwachen: erst nach 5 Minuten ohne Benutzung in die tiefste Stromsparstufe (LP2)
-        timeout-lp1 = <15>; // 15 x 20 s = 300 s (default 20 s)
-        // 160 ms statt 640 ms in LP2: erste Beruehrung wird schneller erkannt (ca. 174 uA statt 55 uA)
-        report-rate-lp2 = <160>;
+        // Wie ein Laptop-Touchpad: auch in den Ruhemodi (Idle, LP1, LP2) alle 20 ms
+        // auf Beruehrung pruefen, damit die erste Beruehrung nach einer Pause sofort
+        // erkannt wird. Kostet mehr Akku als die beekeeb-Vorgabe (LP2 640 ms).
+        report-rate-idle = <20>;
+        report-rate-lp1 = <20>;
+        report-rate-lp2 = <20>;
         scroll-angle = <30>; // The default angle (about 47 deg) is too big on toucan2 I think
-        sensitivity = <100>;
+        sensitivity = <85>; // Zeiger etwas langsamer (100 = Standard)
         scroll-sensitivity = <100>;
 
         filter-settings=<0x0B>;
