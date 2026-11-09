@@ -60,7 +60,9 @@
         // Wie ein Laptop-Touchpad: auch in den Ruhemodi (Idle, LP1, LP2) alle 20 ms
         // auf Beruehrung pruefen, damit die erste Beruehrung nach einer Pause sofort
         // erkannt wird. Kostet mehr Akku als die beekeeb-Vorgabe (LP2 640 ms).
-        report-rate-active = <8>; // 125 Hz waehrend der Bewegung, wie eine normale Maus
+        // 250 Hz: deutlich schneller als das 7,5-ms-Funkintervall, damit jedes
+        // Funkfenster einen frischen Messwert hat (bei 125 Hz fehlte manchmal einer)
+        report-rate-active = <4>;
         report-rate-idle = <20>;
         report-rate-lp1 = <20>;
         report-rate-lp2 = <20>;
