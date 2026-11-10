@@ -42,7 +42,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include "layer.h"
 #endif
 
-#if defined(CONFIG_TOUCAN_STATUS_SCREEN) && CONFIG_TOUCAN_STATUS_SCREEN == 3
+#if defined(CONFIG_TOUCAN_STATUS_SCREEN) && CONFIG_TOUCAN_STATUS_SCREEN >= 3
 #include "hud.h"
 #endif
 
@@ -68,7 +68,7 @@ static void draw_top(lv_obj_t *widget, lv_color_t cbuf[], const struct status_st
         return;
     }
 
-#if defined(CONFIG_TOUCAN_STATUS_SCREEN) && CONFIG_TOUCAN_STATUS_SCREEN == 3
+#if defined(CONFIG_TOUCAN_STATUS_SCREEN) && CONFIG_TOUCAN_STATUS_SCREEN >= 3
     draw_hud(canvas, state);
 #else
     // Draw widgets
@@ -242,6 +242,9 @@ static int display_activity_event_handler(const zmk_event_t *eh) {
 
     switch (ev->state) {
     case ZMK_ACTIVITY_ACTIVE:
+#if defined(CONFIG_TOUCAN_STATUS_SCREEN) && CONFIG_TOUCAN_STATUS_SCREEN == 4
+        hud_anim_set_sleeping(false);
+#endif
         set_sleep_screen_active(false);
         // No need to force a redraw, it will happen automatically if really coming back from sleep (ACTIVE also comes after IDLE)
         //force_redraw_all_widgets();
@@ -254,6 +257,12 @@ static int display_activity_event_handler(const zmk_event_t *eh) {
         lv_task_handler();
         lv_refr_now(NULL);
         break;
+#if defined(CONFIG_TOUCAN_STATUS_SCREEN) && CONFIG_TOUCAN_STATUS_SCREEN == 4
+    case ZMK_ACTIVITY_IDLE:
+        // The animation timer draws the sleeping toucan once and then pauses
+        hud_anim_set_sleeping(true);
+        break;
+#endif
     default:
         break; // ignore other states (like IDLE)
     }
@@ -302,6 +311,10 @@ int zmk_widget_screen_init(struct zmk_widget_screen *widget, lv_obj_t *parent) {
     lv_obj_t *top = lv_canvas_create(widget->obj);
     lv_obj_align(top, LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_canvas_set_buffer(top, widget->cbuf, SCREEN_WIDTH, SCREEN_HEIGHT, LV_IMG_CF_TRUE_COLOR);
+
+#if defined(CONFIG_TOUCAN_STATUS_SCREEN) && CONFIG_TOUCAN_STATUS_SCREEN == 4
+    hud_anim_init(top);
+#endif
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();

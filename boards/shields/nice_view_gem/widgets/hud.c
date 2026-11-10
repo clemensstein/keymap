@@ -14,7 +14,8 @@
  *   21..45   battery gauges L / R
  *   50       dotted divider
  *   56..112  layer frame with corner brackets
- *   118..166 WPM number + bar graph
+ *   118..167 style 3: WPM number + bar graph
+ *            style 4: toucan animation
  */
 
 #define HEADER_H 16
@@ -31,6 +32,7 @@
 #define FRAME_H 57
 #define BRACKET 9
 
+#if CONFIG_TOUCAN_STATUS_SCREEN == 3
 #define WPM_Y 118
 #define CHART_X 46
 #define CHART_BARS 32
@@ -42,6 +44,7 @@
 static uint8_t wpm_hist[CHART_BARS];
 static uint8_t wpm_head;
 static uint8_t wpm_last;
+#endif
 
 static void fill(lv_obj_t *canvas, int x, int y, int w, int h, lv_color_t color) {
     lv_draw_rect_dsc_t dsc;
@@ -178,6 +181,7 @@ static void draw_layer(lv_obj_t *canvas, const struct status_state *state) {
     text(canvas, FRAME_X, y, FRAME_W, font, LV_TEXT_ALIGN_CENTER, LVGL_FOREGROUND, name);
 }
 
+#if CONFIG_TOUCAN_STATUS_SCREEN == 3
 static void draw_wpm(lv_obj_t *canvas, const struct status_state *state) {
     if (state->wpm != wpm_last) {
         wpm_head = (wpm_head + 1) % CHART_BARS;
@@ -221,6 +225,246 @@ static void draw_wpm(lv_obj_t *canvas, const struct status_state *state) {
     }
 }
 
+#endif /* CONFIG_TOUCAN_STATUS_SCREEN == 3 */
+
+#if CONFIG_TOUCAN_STATUS_SCREEN == 4
+/*
+ * Toucan animation in the bottom strip. Sprites are drawn straight into the
+ * canvas buffer and only the strip is invalidated, so a frame refreshes
+ * 50 of 168 display rows. The timer pauses while the keyboard is idle.
+ */
+
+#define ANIM_Y 118
+#define ANIM_H (SCREEN_HEIGHT - ANIM_Y)
+#define ANIM_FRAME_MS 250
+#define PX 2 /* sprite pixel size */
+
+#define BIRD_W 30
+#define BIRD_H 21
+#define BIRD_BODY_ROWS 19
+#define BIRD_Y (SCREEN_HEIGHT - 2 - BIRD_H * PX) /* feet just above the ground */
+#define BIRD_X_MIN 6
+#define BIRD_X_MAX (SCREEN_WIDTH - 6 - BIRD_W * PX)
+#define HOP_PX 4
+
+static const char *const bird_body[BIRD_BODY_ROWS] = {
+    "..........######..............",
+    "........##########............",
+    ".......############...........",
+    "......#####....#####..........",
+    "......####..##..###########...",
+    ".....#####..##..##.........##.",
+    ".....######....##...........##",
+    ".....#######..##.............#",
+    "....########.##.......########",
+    "....#######.....##########....",
+    "....######.......#............",
+    "...#######........#...........",
+    "...#######.........#..........",
+    "...#######.........#..........",
+    "...########.......#...........",
+    "....########.....##...........",
+    ".....##########.##............",
+    "......#########...............",
+    "........#####.................",
+};
+
+/* Rows 4 and 5 with the eye closed */
+static const char *const bird_eye_closed[2] = {
+    "......####......###########...",
+    ".....#####.####.##.........##.",
+};
+
+/* Leg variants (rows 19 and 20) */
+static const char *const legs_stand[2] = {".........#..#", "........##.##"};
+static const char *const legs_walk_a[2] = {"........#...#", ".......##...##"};
+static const char *const legs_walk_b[2] = {"..........##", "..........##"};
+static const char *const legs_tucked[2] = {".........####", ""};
+
+static const char *const heart[6] = {
+    ".##.##.", "#######", "#######", ".#####.", "..###..", "...#...",
+};
+
+enum bird_action { ACT_STAND, ACT_HOP, ACT_WALK };
+
+static struct {
+    lv_obj_t *canvas;
+    lv_timer_t *timer;
+    int x;
+    bool facing_left;
+    enum bird_action action;
+    int t;
+    int heart_t; /* frames since the heart appeared, -1 = none */
+    volatile bool sleeping;
+    bool drawn_asleep;
+} bird = {.x = BIRD_X_MIN, .heart_t = -1};
+
+static void px_block(lv_color_t *buf, int x, int y, int size, lv_color_t color) {
+    for (int dy = 0; dy < size; dy++) {
+        int yy = y + dy;
+        if (yy < ANIM_Y || yy >= SCREEN_HEIGHT) {
+            continue;
+        }
+        for (int dx = 0; dx < size; dx++) {
+            int xx = x + dx;
+            if (xx >= 0 && xx < SCREEN_WIDTH) {
+                buf[yy * SCREEN_WIDTH + xx] = color;
+            }
+        }
+    }
+}
+
+static void sprite_row(lv_color_t *buf, int x0, int y, const char *row, int width, int size,
+                       bool mirror) {
+    for (int i = 0; row[i] != '\0'; i++) {
+        if (row[i] == '#') {
+            int col = mirror ? width - 1 - i : i;
+            px_block(buf, x0 + col * size, y, size, LVGL_FOREGROUND);
+        }
+    }
+}
+
+static void draw_bird(lv_color_t *buf, int x, int y, bool mirror, bool eyes_closed,
+                      const char *const legs[2]) {
+    for (int r = 0; r < BIRD_BODY_ROWS; r++) {
+        const char *row = bird_body[r];
+        if (eyes_closed && (r == 4 || r == 5)) {
+            row = bird_eye_closed[r - 4];
+        }
+        sprite_row(buf, x, y + r * PX, row, BIRD_W, PX, mirror);
+    }
+    for (int r = 0; r < 2; r++) {
+        sprite_row(buf, x, y + (BIRD_BODY_ROWS + r) * PX, legs[r], BIRD_W, PX, mirror);
+    }
+}
+
+static void render_bird(lv_obj_t *canvas, bool invalidate) {
+    lv_img_dsc_t *img = lv_canvas_get_img(canvas);
+    lv_color_t *buf = (lv_color_t *)img->data;
+
+    for (int y = ANIM_Y; y < SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < SCREEN_WIDTH; x++) {
+            buf[y * SCREEN_WIDTH + x] = LVGL_BACKGROUND;
+        }
+    }
+
+    /* Dotted ground */
+    for (int x = 2; x < SCREEN_WIDTH - 2; x += 3) {
+        buf[(SCREEN_HEIGHT - 1) * SCREEN_WIDTH + x] = LVGL_FOREGROUND;
+    }
+
+    int y = BIRD_Y;
+    bool eyes_closed = bird.sleeping;
+    const char *const *legs = legs_stand;
+
+    if (!bird.sleeping) {
+        switch (bird.action) {
+        case ACT_STAND:
+            eyes_closed = (bird.t % 12) == 5;
+            break;
+        case ACT_HOP:
+            if (bird.t % 2 == 0) {
+                y -= HOP_PX;
+                legs = legs_tucked;
+            }
+            break;
+        case ACT_WALK:
+            legs = (bird.t % 2 == 0) ? legs_walk_a : legs_walk_b;
+            y -= (bird.t % 2 == 0) ? 0 : 1;
+            break;
+        }
+    }
+
+    draw_bird(buf, bird.x, y, bird.facing_left, eyes_closed, legs);
+
+    /* Heart pops up above the beak: small first, then full size */
+    if (bird.heart_t >= 0 && !bird.sleeping) {
+        int size = bird.heart_t < 2 ? 1 : 2;
+        int beak = bird.facing_left ? bird.x + 4 : bird.x + BIRD_W * PX - 18;
+        int hx = beak + (2 - size) * 3;
+        int hy = ANIM_Y + 1 + (2 - size) * 4;
+        for (int r = 0; r < 6; r++) {
+            sprite_row(buf, hx, hy + r * size, heart[r], 7, size, false);
+        }
+    }
+
+    if (invalidate) {
+        lv_area_t area;
+        lv_obj_get_coords(canvas, &area);
+        area.y1 += ANIM_Y;
+        lv_obj_invalidate_area(canvas, &area);
+    }
+}
+
+static void draw_sleep_marks(lv_obj_t *canvas) {
+    /* "z Z" in the free space beside the bird, rising away from it */
+    bool right = bird.x + BIRD_W * PX + 24 <= SCREEN_WIDTH;
+    int x = right ? bird.x + BIRD_W * PX + 2 : bird.x - 24;
+    text(canvas, right ? x : x + 14, BIRD_Y + 8, 10, &quinquefive_8, LV_TEXT_ALIGN_LEFT,
+         LVGL_FOREGROUND, "z");
+    text(canvas, right ? x + 9 : x, ANIM_Y + 2, 14, &quinquefive_12, LV_TEXT_ALIGN_LEFT,
+         LVGL_FOREGROUND, "Z");
+}
+
+void hud_anim_step(void) {
+    if (bird.canvas == NULL) {
+        return;
+    }
+    if (bird.sleeping) {
+        if (!bird.drawn_asleep) {
+            render_bird(bird.canvas, false);
+            draw_sleep_marks(bird.canvas);
+            bird.drawn_asleep = true;
+        }
+        return;
+    }
+    bird.drawn_asleep = false;
+
+    bird.t++;
+    if (bird.heart_t >= 0 && ++bird.heart_t > 6) {
+        bird.heart_t = -1;
+    }
+
+    switch (bird.action) {
+    case ACT_STAND:
+        if (bird.t >= 14) {
+            bird.action = ACT_HOP;
+            bird.t = 0;
+            bird.heart_t = 0;
+        }
+        break;
+    case ACT_HOP:
+        if (bird.t >= 6) {
+            bird.action = ACT_WALK;
+            bird.t = 0;
+        }
+        break;
+    case ACT_WALK:
+        bird.x += bird.facing_left ? -2 : 2;
+        if (bird.x <= BIRD_X_MIN || bird.x >= BIRD_X_MAX) {
+            bird.x = bird.x <= BIRD_X_MIN ? BIRD_X_MIN : BIRD_X_MAX;
+            bird.facing_left = !bird.facing_left;
+            bird.action = ACT_STAND;
+            bird.t = 0;
+        }
+        break;
+    }
+
+    render_bird(bird.canvas, true);
+}
+
+static void anim_timer_cb(lv_timer_t *timer) { hud_anim_step(); }
+
+void hud_anim_init(lv_obj_t *canvas) {
+    bird.canvas = canvas;
+    if (bird.timer == NULL) {
+        bird.timer = lv_timer_create(anim_timer_cb, ANIM_FRAME_MS, NULL);
+    }
+}
+
+void hud_anim_set_sleeping(bool sleeping) { bird.sleeping = sleeping; }
+#endif /* CONFIG_TOUCAN_STATUS_SCREEN == 4 */
+
 void draw_hud(lv_obj_t *canvas, const struct status_state *state) {
     draw_header(canvas, state);
     draw_battery(canvas, 0, "L", state->battery, state->charging);
@@ -228,5 +472,12 @@ void draw_hud(lv_obj_t *canvas, const struct status_state *state) {
     draw_battery(canvas, 72, "R", state->battery_p, false);
     draw_divider(canvas);
     draw_layer(canvas, state);
+#if CONFIG_TOUCAN_STATUS_SCREEN == 3
     draw_wpm(canvas, state);
+#else
+    render_bird(canvas, false);
+    if (bird.sleeping) {
+        draw_sleep_marks(canvas);
+    }
+#endif
 }

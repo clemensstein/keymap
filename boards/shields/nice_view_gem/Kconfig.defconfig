@@ -1,9 +1,9 @@
 if SHIELD_NICE_VIEW_GEM
 
 config TOUCAN_STATUS_SCREEN
-    int "Status screen style (0 to 3, 3 = HUD)"
+    int "Status screen style (0 to 4, 3 = HUD, 4 = HUD with toucan)"
     default 2
-    range 0 3
+    range 0 4
 
 config LV_Z_VDB_SIZE
     default 100
